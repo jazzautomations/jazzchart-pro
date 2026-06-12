@@ -1,0 +1,9 @@
+{
+  "name": "JazzChart Pro",
+  "description": "A jazz harmony editor and backing track player inspired by iReal Pro, featuring AI-driven harmony auditing and a custom audio engine.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
+  "majorCapabilities": []
+}
