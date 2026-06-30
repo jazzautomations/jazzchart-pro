@@ -63,7 +63,7 @@ Be accurate to the real jazz standard. If uncertain, use a typical bebop progres
             content: `Generate the complete chord chart for "${title}". Return ONLY the JSON object, no markdown or explanation.`
           }
         ],
-        max_tokens: 4000,
+        max_tokens: 8000,
         temperature: 0.7
       })
     });
@@ -75,7 +75,7 @@ Be accurate to the real jazz standard. If uncertain, use a typical bebop progres
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+    const content = data.choices[0]?.message?.content || data.choices[0]?.message?.reasoning_content;
 
     if (!content) {
       return res.status(500).json({ error: 'No response from AI' });
