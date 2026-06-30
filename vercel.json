@@ -2,8 +2,5 @@
   "framework": "vite",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
-  ],
-  "env": {
-    "JAZZCHART_API_KEY": "@jazzchart_api_key"
-  }
+  ]
 }
