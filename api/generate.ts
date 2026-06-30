@@ -1,26 +1,39 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const API_KEY = process.env.JAZZCHART_API_KEY;
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+
+function checkAuth(req: VercelRequest, res: VercelResponse): boolean {
+  if (!API_KEY) return true;
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Missing or invalid Authorization header' });
+    return false;
+  }
+  if (auth.slice(7) !== API_KEY) {
+    res.status(403).json({ error: 'Invalid API key' });
+    return false;
+  }
+  return true;
+}
+
+function cors(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  cors(res);
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!checkAuth(req, res)) return;
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  
-  if (!apiKey) {
-    return res.status(500).json({ error: 'OpenRouter API key not configured' });
+  if (!OPENROUTER_KEY) {
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY not configured' });
   }
 
   const { title } = req.body;
-
   if (!title || typeof title !== 'string') {
     return res.status(400).json({ error: 'Title required' });
   }
@@ -29,9 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${OPENROUTER_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': req.headers.referer || 'https://jazzchart-pro.vercel.app',
+        'HTTP-Referer': 'https://jazzchart-pro.vercel.app',
         'X-Title': 'JazzChart Pro'
       },
       body: JSON.stringify({
@@ -39,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           {
             role: 'system',
-            content: `You are a jazz music expert. Generate accurate chord charts for jazz standards. 
+            content: `You are a jazz music expert. Generate accurate chord charts for jazz standards.
 Return ONLY valid JSON with this exact structure:
 {
   "title": "Song Title",
@@ -72,26 +85,23 @@ Be accurate to the real jazz standard. If uncertain, use a typical bebop progres
 
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
-    
+
     if (!content) {
       return res.status(500).json({ error: 'No response from AI' });
     }
 
-    // Parse JSON response
     try {
-      // Remove potential markdown formatting
       let cleanContent = content.trim();
       if (cleanContent.startsWith('```json')) {
         cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/\n?```/g, '');
       }
-      
+
       const songData = JSON.parse(cleanContent);
-      
-      // Validate structure
+
       if (!songData.measures || !Array.isArray(songData.measures)) {
         throw new Error('Invalid response structure');
       }
-      
+
       return res.status(200).json(songData);
     } catch {
       return res.status(500).json({ error: 'Failed to parse AI response' });

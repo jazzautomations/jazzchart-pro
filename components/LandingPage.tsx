@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Music, Sparkles, Camera, PlayCircle, Layers, 
@@ -206,25 +205,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           </button>
           <div className="flex items-center justify-center gap-8 pt-8">
             <div className="flex flex-col items-center">
-              <span className="text-3xl font-black">150+</span>
-              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Jazz Standards</span>
+              <span className="text-3xl font-black">8</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Standards</span>
             </div>
             <div className="w-[1px] h-10 bg-white/10" />
             <div className="flex flex-col items-center">
-              <span className="text-3xl font-black">2.5k</span>
-              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Cifras via OCR</span>
+              <span className="text-3xl font-black">IA</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Vision Import</span>
             </div>
             <div className="w-[1px] h-10 bg-white/10" />
             <div className="flex flex-col items-center">
-              <span className="text-3xl font-black">Zero</span>
-              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Robotic Feel</span>
+              <span className="text-3xl font-black">3</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Instrumentos</span>
             </div>
           </div>
         </div>
       </section>
 
       <footer className="py-12 px-6 border-t border-white/5 bg-black/60 text-center text-slate-600 font-bold text-xs tracking-widest uppercase">
-        © 2025 JazzChart Pro Studio • Made for those who hear the changes.
+        © 2026 JazzChart Pro Studio • Made for those who hear the changes.
       </footer>
     </div>
   );

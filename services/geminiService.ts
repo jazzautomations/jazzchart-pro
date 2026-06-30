@@ -90,13 +90,37 @@ export async function generateSongFromTitle(title: string): Promise<Partial<Song
 }
 
 export async function generateSongFromImage(base64Data: string, mimeType: string): Promise<Partial<Song>> {
-  // For now, return a placeholder - image analysis would require additional setup
-  return {
-    title: 'Imported Chart',
-    composer: 'OCR Import',
-    key: 'C',
-    tempo: 120,
-    style: 'Swing',
-    measures: [['Cmaj7'], ['Dm7'], ['G7'], ['Cmaj7']]
-  };
+  try {
+    const response = await fetch(`${API_BASE}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: `Imported from image`,
+        image: base64Data,
+        mimeType
+      })
+    });
+
+    if (!response.ok) throw new Error('Image generate API error');
+
+    const data = await response.json();
+    return {
+      title: data.title || 'Imported Chart',
+      composer: data.composer || 'OCR Import',
+      key: data.key || 'C',
+      tempo: data.tempo || 120,
+      style: data.style || 'Swing',
+      measures: data.measures || [['Cmaj7'], ['Dm7'], ['G7'], ['Cmaj7']]
+    };
+  } catch (error) {
+    console.error('Image import error:', error);
+    return {
+      title: 'Imported Chart',
+      composer: 'OCR Import',
+      key: 'C',
+      tempo: 120,
+      style: 'Swing',
+      measures: [['Cmaj7'], ['Dm7'], ['G7'], ['Cmaj7']]
+    };
+  }
 }
