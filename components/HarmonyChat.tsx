@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Song, MeasureAnnotation } from '../types';
+import { Song } from '../types';
 import { chatWithHarmony } from '../services/geminiService';
 import { Send, Bot, User, Loader2, Sparkles, X, Check, Ban } from 'lucide-react';
 
@@ -72,51 +71,52 @@ export const HarmonyChat: React.FC<HarmonyChatProps> = ({ song, onClose, onApply
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0c0c0e] border-l border-white/5 w-96 shadow-2xl animate-in slide-in-from-right duration-300">
-      <div className="p-6 border-b border-white/5 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-zinc-900">
+      {/* Header */}
+      <div className="p-4 border-b border-zinc-800 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center shadow-[0_0_15px_rgba(147,51,234,0.4)]">
-            <Sparkles className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-purple-400" />
           </div>
           <div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-white">Harmony Insight</h3>
-            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">IA Expert Analysis</p>
+            <h3 className="text-sm font-bold text-white">Harmony AI</h3>
+            <p className="text-[10px] text-zinc-500">Análise harmônica</p>
           </div>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg text-slate-500 transition-colors">
+        <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400">
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex flex-col gap-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${msg.role === 'user' ? 'bg-blue-600/10 border-blue-500/20 text-blue-400' : 'bg-purple-600/10 border-purple-500/20 text-purple-400'}`}>
-                {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+          <div key={i} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                {msg.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
               </div>
-              <div className={`max-w-[85%] p-4 rounded-2xl text-xs leading-relaxed font-medium ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white/5 text-slate-200 rounded-tl-none border border-white/5'}`}>
+              <div className={`p-3 rounded-2xl text-xs leading-relaxed ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-tr-none' : 'bg-zinc-800 text-zinc-200 rounded-tl-none'}`}>
                 {msg.content.split('\n').map((line, idx) => (
                   <p key={idx} className={idx > 0 ? 'mt-2' : ''}>{line}</p>
                 ))}
               </div>
             </div>
             
-            {/* Permission Prompt for Annotations */}
             {msg.pendingAnnotations && !msg.isApplied && (
-              <div className="ml-11 p-4 bg-purple-600/10 border border-purple-500/20 rounded-2xl space-y-3 w-[80%]">
-                <p className="text-[10px] font-black uppercase tracking-widest text-purple-400">Sugestão de Anotação</p>
-                <p className="text-[11px] text-slate-400 italic">A IA identificou {msg.pendingAnnotations.length} movimentos harmônicos importantes. Deseja marcar no chart?</p>
+              <div className="ml-8 p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl space-y-2 w-[80%]">
+                <p className="text-[10px] font-bold text-purple-400 uppercase">Sugestão de Anotação</p>
+                <p className="text-[11px] text-zinc-400">A IA identificou {msg.pendingAnnotations.length} movimentos harmônicos. Marcar no chart?</p>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => applyAction(i)}
-                    className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-purple-500 transition-all"
+                    className="flex-1 py-1.5 bg-purple-500 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-purple-400"
                   >
                     <Check className="w-3 h-3" /> Aplicar
                   </button>
                   <button 
                     onClick={() => setMessages(prev => prev.map((m, idx) => idx === i ? { ...m, pendingAnnotations: undefined } : m))}
-                    className="p-2 border border-white/10 text-slate-500 rounded-lg hover:bg-white/5 transition-all"
+                    className="p-1.5 border border-zinc-700 text-zinc-400 rounded-lg hover:bg-zinc-800"
                   >
                     <Ban className="w-3 h-3" />
                   </button>
@@ -125,38 +125,39 @@ export const HarmonyChat: React.FC<HarmonyChatProps> = ({ song, onClose, onApply
             )}
             
             {msg.isApplied && (
-              <div className="ml-11 flex items-center gap-2 text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
-                <Check className="w-3 h-3" /> Anotações aplicadas ao chart
+              <div className="ml-8 flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                <Check className="w-3 h-3" /> Aplicado ao chart
               </div>
             )}
           </div>
         ))}
         {isLoading && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-              <Loader2 className="w-4 h-4 animate-spin" />
+          <div className="flex gap-2">
+            <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
+              <Loader2 className="w-3 h-3 animate-spin" />
             </div>
-            <div className="bg-white/5 p-4 rounded-2xl text-[10px] text-slate-500 font-black uppercase tracking-widest animate-pulse">
-              Escutando os acordes...
+            <div className="bg-zinc-800 p-3 rounded-2xl text-[10px] text-zinc-500 animate-pulse">
+              Analisando...
             </div>
           </div>
         )}
       </div>
 
-      <div className="p-6 border-t border-white/5">
-        <div className="relative group">
+      {/* Input */}
+      <div className="p-4 border-t border-zinc-800 shrink-0">
+        <div className="relative">
           <input 
             type="text" 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Analise o ii-V-I do compasso 4..."
-            className="w-full bg-[#070709] border border-white/5 rounded-xl pl-4 pr-12 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all placeholder:text-slate-600"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-4 pr-10 py-3 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
           />
           <button 
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-all disabled:opacity-50 active:scale-90"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-purple-500 text-white rounded-lg hover:bg-purple-400 disabled:opacity-50"
           >
             <Send className="w-3.5 h-3.5" />
           </button>
