@@ -31,7 +31,7 @@ Use colors like: #3b82f622 (blue), #10b98122 (green), #f59e0b22 (yellow), #ef444
     const response = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, max_tokens: 1000, temperature: 0.7 })
+      body: JSON.stringify({ messages, max_tokens: 4000, temperature: 0.7 })
     });
 
     if (!response.ok) {
@@ -39,7 +39,7 @@ Use colors like: #3b82f622 (blue), #10b98122 (green), #f59e0b22 (yellow), #ef444
     }
 
     const data = await response.json();
-    const text = data.choices[0]?.message?.content || 'Sorry, I could not process that.';
+    const text = data.choices[0]?.message?.content || data.choices[0]?.message?.reasoning_content || 'Sorry, I could not process that.';
     
     // Extract annotations if present
     const annotationsMatch = text.match(/ANNOTATIONS:\s*(\[[\s\S]*?\])/);

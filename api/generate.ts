@@ -63,7 +63,7 @@ Be accurate to the real jazz standard. If uncertain, use a typical bebop progres
             content: `Generate the complete chord chart for "${title}". Return ONLY the JSON object, no markdown or explanation.`
           }
         ],
-        max_tokens: 2000,
+        max_tokens: 4000,
         temperature: 0.7
       })
     });

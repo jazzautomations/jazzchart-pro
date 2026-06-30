@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
-  const { messages, max_tokens = 2000, temperature = 0.7 } = req.body;
+  const { messages, max_tokens = 4000, temperature = 0.7 } = req.body;
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Messages array required' });
   }
