@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --bg: #09090b;
   --panel: #18181b;
@@ -44,6 +46,10 @@ html, body, #root {
 /* Safe area for mobile */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0);
 }
 
 /* Slide up animation */
