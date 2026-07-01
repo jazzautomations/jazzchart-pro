@@ -8,9 +8,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "lucide-react": "^0.454.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "lucide-react": "^0.454.0"
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

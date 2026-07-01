@@ -4,14 +4,14 @@ import { ChordGrid } from './components/ChordGrid';
 import { LandingPage } from './components/LandingPage';
 import { HarmonyChat } from './components/HarmonyChat';
 import { Song, MeasureMetadata } from './types';
-import { INITIAL_SONGS, STYLES } from './constants';
+import { INITIAL_SONGS } from './constants';
 import { audioEngine } from './services/audioEngine';
 import { generateSongFromTitle, generateSongFromImage } from './services/geminiService';
 import { transposeMeasures, ALL_KEYS } from './services/transposition';
-import { 
+import {
   Play, Square, Loader2, X as XIcon,
   BookOpen, SlidersHorizontal, MessageSquare,
-  ChevronUp, ChevronDown, Music
+  ChevronUp, ChevronDown, Music, SkipBack, Repeat
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -20,12 +20,12 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('jazzchart_v11_songs');
     return saved ? JSON.parse(saved) : INITIAL_SONGS;
   });
-  
+
   const [currentSong, setCurrentSong] = useState<Song>(songs[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeMeasure, setActiveMeasure] = useState<number>(-1);
   const [currentBeat, setCurrentBeat] = useState<number>(0);
-  
+
   // Bottom sheet states
   const [libOpen, setLibOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -49,6 +49,15 @@ const App: React.FC = () => {
       setCurrentBeat(b);
     });
   }, []);
+
+  // Sync loop to engine
+  useEffect(() => {
+    if (loopStart !== undefined && loopEnd !== undefined) {
+      audioEngine.setLoop(loopStart, loopEnd);
+    } else {
+      audioEngine.setLoop(null, null);
+    }
+  }, [loopStart, loopEnd]);
 
   const handlePlay = useCallback(async () => {
     if (isPlaying) {
@@ -113,6 +122,7 @@ const App: React.FC = () => {
     setLoopStart(undefined);
     setLoopEnd(undefined);
     setLoopMode(false);
+    audioEngine.setLoop(null, null);
   };
 
   const hasCurrentAnalysis = useMemo(() => {
@@ -124,143 +134,159 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-dvh bg-zinc-950 text-white overflow-hidden">
       {/* Header */}
-      <header className="h-12 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-3 shrink-0">
-        <button 
+      <header className="h-11 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-3 shrink-0 safe-top">
+        <button
           onClick={() => setLibOpen(true)}
-          className="p-2 -ml-2 hover:bg-zinc-800 rounded-lg transition-colors"
+          className="p-1.5 -ml-1 hover:bg-zinc-800 rounded-lg transition-colors"
         >
           <BookOpen className="w-5 h-5 text-zinc-400" />
         </button>
-        
-        <div className="flex-1 text-center px-4">
+
+        <div className="flex-1 text-center px-2 min-w-0">
           <h1 className="text-sm font-bold text-white truncate">{currentSong.title}</h1>
-          <p className="text-[10px] text-zinc-500 truncate">{currentSong.composer}</p>
+          <p className="text-[10px] text-zinc-500 truncate">{currentSong.composer} · {currentSong.key} · {currentSong.tempo} BPM</p>
         </div>
 
-        <div className="flex items-center gap-1">
-          <button 
+        <div className="flex items-center gap-0.5">
+          <button
             onClick={() => hasCurrentAnalysis && setShowAnalysis(!showAnalysis)}
             disabled={!hasCurrentAnalysis}
-            className={`p-2 rounded-lg transition-colors ${
-              !hasCurrentAnalysis 
-                ? 'opacity-30' 
-                : showAnalysis 
-                  ? 'bg-blue-500/20 text-blue-400' 
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-colors ${
+              !hasCurrentAnalysis
+                ? 'opacity-30'
+                : showAnalysis
+                  ? 'bg-blue-500/20 text-blue-400'
                   : 'text-zinc-500 hover:bg-zinc-800'
             }`}
           >
-            <span className="text-[10px] font-bold">ANÁLISE</span>
+            ANÁLISE
           </button>
-          
-          <button 
+          <button
             onClick={() => setMixerOpen(true)}
-            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-zinc-800 rounded-lg transition-colors"
           >
             <SlidersHorizontal className="w-5 h-5 text-zinc-400" />
           </button>
         </div>
       </header>
 
-      {/* Main content */}
-      <div className="flex-1 overflow-hidden relative">
-        <div className="h-full overflow-y-auto px-2 pt-3 pb-2">
-          <ChordGrid 
-            measures={currentSong.measures}
-            metadata={currentSong.metadata}
-            activeMeasure={activeMeasure}
-            showAnalysis={showAnalysis && hasCurrentAnalysis}
-            onMeasureClick={handleMeasureClick}
-            loopStart={loopStart}
-            loopEnd={loopEnd}
-          />
-        </div>
+      {/* Main chart area */}
+      <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2" style={{ touchAction: 'pan-y' }}>
+        <ChordGrid
+          measures={currentSong.measures}
+          metadata={currentSong.metadata}
+          activeMeasure={activeMeasure}
+          showAnalysis={showAnalysis && hasCurrentAnalysis}
+          onMeasureClick={handleMeasureClick}
+          loopStart={loopStart}
+          loopEnd={loopEnd}
+        />
+      </div>
 
-        {/* Bottom toolbar */}
-        <div className="absolute bottom-0 left-0 right-0 h-14 bg-zinc-900/95 backdrop-blur-lg border-t border-zinc-800 flex items-center justify-between px-3">
-          {/* Play/Stop */}
-          <button 
+      {/* Bottom toolbar */}
+      <div className="shrink-0 bg-zinc-900 border-t border-zinc-800 px-3 py-2 flex items-center justify-between safe-bottom">
+        {/* Play/Stop */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (isPlaying) {
+                audioEngine.stop();
+                setIsPlaying(false);
+                setActiveMeasure(-1);
+                setCurrentBeat(0);
+              }
+              setCurrentSong(s => ({ ...s }));
+              setActiveMeasure(-1);
+              setCurrentBeat(0);
+            }}
+            className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-zinc-700"
+          >
+            <SkipBack className="w-3.5 h-3.5" />
+          </button>
+
+          <button
             onClick={handlePlay}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-              isPlaying 
-                ? 'bg-red-500 text-white' 
-                : 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg ${
+              isPlaying
+                ? 'bg-red-500 text-white shadow-red-500/30'
+                : 'bg-blue-500 text-white shadow-blue-500/30'
             }`}
           >
-            {isPlaying ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
-          </button>
-
-          {/* Tempo */}
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => updateCurrentSong({ tempo: Math.max(40, currentSong.tempo - 5) })}
-              className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-zinc-700"
-            >
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            <div className="text-center min-w-[50px]">
-              <div className="text-lg font-bold text-white leading-none">{currentSong.tempo}</div>
-              <div className="text-[8px] text-zinc-500 font-bold">BPM</div>
-            </div>
-            <button 
-              onClick={() => updateCurrentSong({ tempo: Math.min(300, currentSong.tempo + 5) })}
-              className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-zinc-700"
-            >
-              <ChevronUp className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Transpose */}
-          <div className="flex items-center gap-1 bg-zinc-800 rounded-lg px-2 py-1">
-            <button 
-              onClick={() => {
-                const idx = ALL_KEYS.indexOf(currentSong.key);
-                if (idx > 0) {
-                  const newKey = ALL_KEYS[idx - 1];
-                  const transposed = transposeMeasures(currentSong.measures, currentSong.key, newKey);
-                  updateCurrentSong({ key: newKey, measures: transposed });
-                }
-              }}
-              className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-white"
-            >
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            <span className="text-xs font-bold text-white min-w-[24px] text-center">{currentSong.key}</span>
-            <button 
-              onClick={() => {
-                const idx = ALL_KEYS.indexOf(currentSong.key);
-                if (idx < ALL_KEYS.length - 1) {
-                  const newKey = ALL_KEYS[idx + 1];
-                  const transposed = transposeMeasures(currentSong.measures, currentSong.key, newKey);
-                  updateCurrentSong({ key: newKey, measures: transposed });
-                }
-              }}
-              className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-white"
-            >
-              <ChevronUp className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Loop */}
-          <button 
-            onClick={() => loopMode ? clearLoop() : setLoopMode(true)}
-            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${
-              loopMode ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            {loopMode && loopStart !== undefined && loopEnd !== undefined 
-              ? `${loopStart + 1}-${loopEnd + 1}`
-              : 'LOOP'
-            }
-          </button>
-
-          {/* Chat */}
-          <button 
-            onClick={() => setChatOpen(true)}
-            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
-          >
-            <MessageSquare className="w-5 h-5 text-zinc-400" />
+            {isPlaying ? <Square className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
           </button>
         </div>
+
+        {/* Tempo */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => updateCurrentSong({ tempo: Math.max(40, currentSong.tempo - 5) })}
+            className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-400 active:bg-zinc-700"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
+          <div className="text-center min-w-[44px]">
+            <div className="text-base font-bold text-white leading-none">{currentSong.tempo}</div>
+            <div className="text-[8px] text-zinc-500 font-bold">BPM</div>
+          </div>
+          <button
+            onClick={() => updateCurrentSong({ tempo: Math.min(300, currentSong.tempo + 5) })}
+            className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-400 active:bg-zinc-700"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Transpose */}
+        <div className="flex items-center gap-0.5 bg-zinc-800 rounded-lg px-1.5 py-1">
+          <button
+            onClick={() => {
+              const idx = ALL_KEYS.indexOf(currentSong.key);
+              if (idx > 0) {
+                const newKey = ALL_KEYS[idx - 1];
+                const transposed = transposeMeasures(currentSong.measures, currentSong.key, newKey);
+                updateCurrentSong({ key: newKey, measures: transposed });
+              }
+            }}
+            className="w-6 h-6 flex items-center justify-center text-zinc-400 active:text-white"
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-xs font-bold text-white min-w-[28px] text-center">{currentSong.key}</span>
+          <button
+            onClick={() => {
+              const idx = ALL_KEYS.indexOf(currentSong.key);
+              if (idx < ALL_KEYS.length - 1) {
+                const newKey = ALL_KEYS[idx + 1];
+                const transposed = transposeMeasures(currentSong.measures, currentSong.key, newKey);
+                updateCurrentSong({ key: newKey, measures: transposed });
+              }
+            }}
+            className="w-6 h-6 flex items-center justify-center text-zinc-400 active:text-white"
+          >
+            <ChevronUp className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Loop */}
+        <button
+          onClick={() => loopMode ? clearLoop() : setLoopMode(true)}
+          className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+            loopMode ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-zinc-400 active:bg-zinc-700'
+          }`}
+        >
+          {loopMode && loopStart !== undefined && loopEnd !== undefined
+            ? <span className="text-[9px] font-bold">{loopStart + 1}-{loopEnd + 1}</span>
+            : <Repeat className="w-4 h-4" />
+          }
+        </button>
+
+        {/* Chat */}
+        <button
+          onClick={() => setChatOpen(true)}
+          className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+        >
+          <MessageSquare className="w-5 h-5 text-zinc-400" />
+        </button>
       </div>
 
       {/* Loading overlay */}
@@ -278,8 +304,8 @@ const App: React.FC = () => {
       {libOpen && (
         <div className="absolute inset-0 z-40" onClick={() => setLibOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
-          <div 
-            className="absolute bottom-0 left-0 right-0 max-h-[80vh] bg-zinc-900 rounded-t-2xl overflow-hidden"
+          <div
+            className="absolute bottom-0 left-0 right-0 max-h-[80vh] bg-zinc-900 rounded-t-2xl overflow-hidden animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
@@ -292,7 +318,7 @@ const App: React.FC = () => {
               </button>
             </div>
             <div className="overflow-y-auto max-h-[calc(80vh-60px)]">
-              <Library 
+              <Library
                 songs={songs}
                 onSelect={(s) => {
                   audioEngine.stop();
@@ -302,19 +328,19 @@ const App: React.FC = () => {
                   setLibOpen(false);
                 }}
                 onNew={() => {
-                  const ns: Song = { 
-                    id: Date.now().toString(), 
-                    title: 'Novo Chart', 
-                    composer: 'User', 
-                    style: 'Swing', 
-                    key: 'C', 
-                    tempo: 120, 
-                    measures: Array(32).fill(['Cmaj7']), 
-                    metadata: Array(32).fill({}), 
-                    version: 1, 
-                    author: 'User' 
+                  const ns: Song = {
+                    id: Date.now().toString(),
+                    title: 'Novo Chart',
+                    composer: 'User',
+                    style: 'Swing',
+                    key: 'C',
+                    tempo: 120,
+                    measures: Array(32).fill(['Cmaj7']),
+                    metadata: Array(32).fill({}),
+                    version: 1,
+                    author: 'User'
                   };
-                  setSongs([ns, ...songs]); 
+                  setSongs([ns, ...songs]);
                   setCurrentSong(ns);
                   setLibOpen(false);
                 }}
@@ -323,22 +349,22 @@ const App: React.FC = () => {
                   try {
                     const data = await generateSongFromTitle(t);
                     if (data.measures) {
-                      const ns: Song = { 
-                        id: Date.now().toString(), 
-                        title: data.title || t, 
-                        composer: data.composer || 'AI', 
-                        style: 'Swing', 
-                        key: data.key || 'C', 
-                        tempo: data.tempo || 120, 
-                        measures: data.measures as string[][], 
-                        metadata: Array(data.measures.length).fill({}), 
-                        version: 1, 
-                        author: 'AI' 
+                      const ns: Song = {
+                        id: Date.now().toString(),
+                        title: data.title || t,
+                        composer: data.composer || 'AI',
+                        style: 'Swing',
+                        key: data.key || 'C',
+                        tempo: data.tempo || 120,
+                        measures: data.measures as string[][],
+                        metadata: Array(data.measures.length).fill({}),
+                        version: 1,
+                        author: 'AI'
                       };
-                      setSongs([ns, ...songs]); 
+                      setSongs([ns, ...songs]);
                       setCurrentSong(ns);
                     }
-                  } catch(e) {}
+                  } catch (e) { /* ignore */ }
                   setIsLoading(false);
                 }}
                 onAIImageImport={async (b, m) => {
@@ -346,22 +372,22 @@ const App: React.FC = () => {
                   try {
                     const data = await generateSongFromImage(b, m);
                     if (data.measures) {
-                      const ns: Song = { 
-                        id: Date.now().toString(), 
-                        title: data.title || 'Importado', 
-                        composer: data.composer || 'OCR', 
-                        style: 'Swing', 
-                        key: data.key || 'C', 
-                        tempo: data.tempo || 120, 
-                        measures: data.measures as string[][], 
-                        metadata: Array(data.measures.length).fill({}), 
-                        version: 1, 
-                        author: 'OCR' 
+                      const ns: Song = {
+                        id: Date.now().toString(),
+                        title: data.title || 'Importado',
+                        composer: data.composer || 'OCR',
+                        style: 'Swing',
+                        key: data.key || 'C',
+                        tempo: data.tempo || 120,
+                        measures: data.measures as string[][],
+                        metadata: Array(data.measures.length).fill({}),
+                        version: 1,
+                        author: 'OCR'
                       };
-                      setSongs([ns, ...songs]); 
+                      setSongs([ns, ...songs]);
                       setCurrentSong(ns);
                     }
-                  } catch(e) {}
+                  } catch (e) { /* ignore */ }
                   setIsLoading(false);
                 }}
               />
@@ -374,8 +400,8 @@ const App: React.FC = () => {
       {mixerOpen && (
         <div className="absolute inset-0 z-40" onClick={() => setMixerOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
-          <div 
-            className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-2xl p-6"
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-2xl p-6 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -391,7 +417,7 @@ const App: React.FC = () => {
                     <span className="text-zinc-400 capitalize">{inst}</span>
                     <span className="text-blue-500 font-mono">{Math.round(volumes[inst] * 100)}%</span>
                   </div>
-                  <input 
+                  <input
                     type="range" min="0" max="1" step="0.01"
                     value={volumes[inst]}
                     onChange={(e) => {
@@ -412,12 +438,12 @@ const App: React.FC = () => {
       {chatOpen && (
         <div className="absolute inset-0 z-40" onClick={() => setChatOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
-          <div 
-            className="absolute bottom-0 left-0 right-0 h-[70vh] bg-zinc-900 rounded-t-2xl overflow-hidden"
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[70vh] bg-zinc-900 rounded-t-2xl overflow-hidden animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <HarmonyChat 
-              song={currentSong} 
+            <HarmonyChat
+              song={currentSong}
               onClose={() => setChatOpen(false)}
               onApplyAnnotations={handleApplyAnnotations}
             />
